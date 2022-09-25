@@ -136,5 +136,18 @@ namespace FolderIcons
             string path = AssetDatabase.GetAssetPath (asset);
             return AssetDatabase.AssetPathToGUID (path);
         }
+
+        /// <summary>
+        /// Attempt to find a texture asset with the given name.
+        /// </summary>
+        /// <param name="name">The name of the texture to find</param>
+        /// <returns>The texture found, otherwise null.</returns>
+        public static Texture2D GetTexture(string name)
+        {
+            string[] results = AssetDatabase.FindAssets(name);
+            if (results != null && results.Length > 0)
+                return AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(results[0]));
+            return null;
+        }
     }
 }
