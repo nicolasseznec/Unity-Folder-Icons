@@ -20,13 +20,19 @@ namespace FolderIcons
 
         private readonly Dictionary<string, ReorderableList> reorderableLists = new();
 
+        // References
+        private ReorderableList folders;
+        private SerializedProperty foldersProp;
+        private SerializedProperty iconProp;
+
+        // Scrollview
         private Vector2 scrollPos;
         private Rect listRect;
         private Rect scrollViewRect;
 
-        private ReorderableList folders;
-        private SerializedProperty foldersProp;
-        private SerializedProperty iconProp;
+        // Backgrounds
+        private Color bgFaceColor = new(0.18f, 0.18f, 0.18f, 1f);
+        private Color bgOutlineColor = new(0.15f, 0.15f, 0.15f, 1f);
 
         // Serves to know which icon is being modified. Could also look into the serialized property path instead.
         public static int folderDataIndex;
@@ -42,12 +48,11 @@ namespace FolderIcons
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             EditorGUI.BeginProperty(position, label, property);
-
             iconProp = property;
 
             position.y += PROPERTY_PADDING;
 
-            DrawBackground(position);
+            DrawBackground(position, Color.clear, bgOutlineColor);
             position = DrawHeader(position);
 
             Rect originalRect = position;
@@ -68,19 +73,31 @@ namespace FolderIcons
             position.y += 73f; // TODO : proper scaling
 
             DrawFolders(position, property);
-
             EditorGUI.EndProperty();
         }
 
         private void DrawPreview(Rect position, SerializedProperty property, float sidePropertiesHeight)
         {
-            // Draw Large Preview
             position.height = sidePropertiesHeight;
-            //position.height = position.width;
+
+            // Draw Backgrounds
+            Rect backgroundRect = position;
+            DrawBackground(backgroundRect, bgFaceColor, bgOutlineColor, 4);
+
+            backgroundRect.y += backgroundRect.height - 4;
+            backgroundRect.height *= 0.4f;
+
+            backgroundRect.width *= 0.5f;
+            DrawBackground(backgroundRect, bgFaceColor, bgOutlineColor, 4);
+
+            backgroundRect.x += backgroundRect.width;
+            DrawBackground(backgroundRect, bgFaceColor, bgOutlineColor, 4);
+
+            // Draw Large Preview
             FolderGUI.DrawFolderPreviewFromProperty(position, property, open: false, small: false);
 
             // Draw Small Closed Preview
-            float fullWidth = Mathf.Min(position.width, sidePropertiesHeight);
+            float fullWidth = Mathf.Min(position.width, position.height);
             float middle = position.x + position.width * 0.5f;
 
             position.y += position.height;
@@ -100,11 +117,7 @@ namespace FolderIcons
             Rect _rect = rect;
             _rect.height = PROPERTY_HEIGHT;
 
-            Handles.BeginGUI();
-            Handles.DrawSolidRectangleWithOutline(_rect,
-                new Color(0.20f, 0.20f, 0.20f, 1f),
-                new Color(0.15f, 0.15f, 0.15f, 1f));
-            Handles.EndGUI();
+            DrawBackground(_rect, bgOutlineColor, bgOutlineColor);
             _rect.x += 6f;
             EditorGUI.LabelField(_rect, "Icon Editor", EditorStyles.boldLabel);
 
@@ -112,13 +125,18 @@ namespace FolderIcons
             return rect;
         }
 
-        private void DrawBackground(Rect rect)
+        private void DrawBackground(Rect rect, Color faceColor, Color outlineColor, int retract = 0)
         {
+            rect.height -= retract * 2;
+            rect.y += retract;
+            rect.width -= retract * 2;
+            rect.x += retract;
+
             rect.width += 4f;
             rect.x -= 2f;
 
             Handles.BeginGUI();
-            Handles.DrawSolidRectangleWithOutline(rect, Color.clear, new Color(0.15f, 0.15f, 0.15f, 1f));
+            Handles.DrawSolidRectangleWithOutline(rect, faceColor, outlineColor);
             Handles.EndGUI();
         }
 
@@ -175,7 +193,7 @@ namespace FolderIcons
 
             EditorGUIUtility.labelWidth = originalLabelWidth;
 
-            sidePropertiesRect.yMax = rect.yMax;
+            sidePropertiesRect.yMax = rect.yMax - (PROPERTY_HEIGHT + PROPERTY_PADDING);
 
             return sidePropertiesRect;
         }
@@ -213,6 +231,9 @@ namespace FolderIcons
         private void UpdateListCache(SerializedProperty property)
         {
             SerializedProperty foldersProp = property.FindPropertyRelative(nameof(FolderData.folders));
+            
+            if (foldersProp == null)
+                return;
 
             if (!reorderableLists.ContainsKey(property.propertyPath)
                 || reorderableLists[property.propertyPath].index > reorderableLists[property.propertyPath].count - 1)
@@ -307,7 +328,9 @@ namespace FolderIcons
         {
             GUI.EndScrollView();
             if (listRect.height > scrollViewRect.height)
-                rect.y = scrollViewRect.yMax;
+            {
+                rect.y = scrollViewRect.yMax; // Footer is drawn below the scrollview if there are too many items
+            }
             ReorderableList.defaultBehaviours.DrawFooter(rect, folders);
         }
 
@@ -324,7 +347,7 @@ namespace FolderIcons
             var refProp = folderRef.FindPropertyRelative(nameof(FolderData.FolderRef.folder));
             refProp.objectReferenceValue = null;
 
-            scrollPos.y += 30; // Ensure view scroll to the bottom
+            scrollPos.y += 30; // Ensure view scrolls to the bottom
         }
 
         private void OnRemove(ReorderableList list)

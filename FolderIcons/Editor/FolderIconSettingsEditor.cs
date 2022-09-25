@@ -180,9 +180,10 @@ namespace FolderIcons
                 EditorGUILayout.PropertyField(serializedIconEditor);
                 return;
             }
-
-            // Draw Empty Icon Editor
-            // TODO : Box with button to add element to the icon list, and disclaimer that reads "No Icon has been created yet."
+            else
+            {
+                DrawEmptyIconEditor();
+            }
         }
 
         private void UpdateIconEditor(SerializedProperty property)
@@ -191,6 +192,20 @@ namespace FolderIcons
                 serializedIconEditor.managedReferenceId = property.managedReferenceId;
             else
                 serializedIconEditor.managedReferenceValue = null;
+        }
+
+        private void DrawEmptyIconEditor()
+        {
+            // TODO : Box with button to add element to the icon list, and disclaimer that reads "No Icon has been created yet."
+            //float height = EditorGUI.GetPropertyHeight(serializedIconEditor);
+            //Rect rect = GUILayoutUtility.GetRect(GUIContent.none, GUIStyle.none, GUILayout.Height(height));
+
+            //Rect rect = EditorGUILayout.BeginVertical();
+            //EditorGUILayout.HelpBox("No Icon has been created yet.", MessageType.None, false);
+            //if (GUILayout.Button("Create New Icon", GUILayout.Width(200)))
+            //{
+            //    OnAdd(iconList);
+            //}
         }
         #endregion
 
