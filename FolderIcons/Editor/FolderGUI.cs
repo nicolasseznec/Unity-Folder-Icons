@@ -11,11 +11,11 @@ namespace FolderIcons
     /// </summary>
     public static class FolderGUI
     {
-        public static Dictionary<FolderData, Texture2D> gradientCache = new();
+        private static Dictionary<FolderData, Texture2D> gradientCache = new();
 
         #region Editor Preview
         /// <summary>
-        /// Draw a preview of the folder icon from its property.
+        /// Draw a preview of a folder icon from its property.
         /// </summary>
         /// <param name="rect">Rectangle to draw the icon within</param>
         /// <param name="iconProperty">Property of the icon to draw</param>
@@ -60,6 +60,7 @@ namespace FolderIcons
         /// Draw the folder and its overlay
         /// </summary>
         /// <param name="rect">The original folder rect.</param>
+        /// <param name="guid">The GUID of the folder to draw.</param>
         /// <param name="settings">The global settings.</param>
         /// <param name="icon">The folder icon data.</param>
         public static void DrawCustomFolder(Rect rect, string guid, FolderIconSettings settings, FolderData icon)
@@ -92,7 +93,7 @@ namespace FolderIcons
                 DrawBackgroundCover(folderRect, guid, small);
             }
 
-            if (small && icon.selectionGradient)
+            if (small && icon.treeGradient)
             {
                 DrawIconGradient(rect, icon);
             }
@@ -113,6 +114,7 @@ namespace FolderIcons
         /// </summary>
         /// <param name="rect">The rect for the folder texture.</param>
         /// <param name="folder">The texture to draw.</param>
+        /// <param name="colorTint">The optional Color to tint the texture with.</param>
         public static void DrawFolderTexture(Rect rect, Texture folder, Optional<Color> colorTint)
         {
             if (folder == null) return;
@@ -132,6 +134,8 @@ namespace FolderIcons
         /// </summary>
         /// <param name="rect">The original rect of the folder.</param>
         /// <param name="overlay">The overlay texture to draw.</param>
+        /// <param name="offset">The offset to apply to the overlay.</param>
+        /// <param name="scale">The scale to apply to the overlay.</param>
         public static void DrawOverlayTexture(Rect rect, Texture overlay, float scale, Vector2 offset)
         {
             if (overlay == null) return;
@@ -152,7 +156,7 @@ namespace FolderIcons
         /// </summary>
         /// <param name="rect">The rectangle to cover</param>
         /// <param name="guid">GUID of the folder to cover</param>
-        /// <param name="small">Icon is in the project tree</param>
+        /// <param name="small">If the icon is in the project tree</param>
         public static void DrawBackgroundCover(Rect rect, string guid, bool small)
         {
             Color color;
@@ -260,7 +264,7 @@ namespace FolderIcons
         {
             if (icon == null) return null;
 
-            return gradientCache[icon] = GradientToTexture(icon.selectionGradient);
+            return gradientCache[icon] = GradientToTexture(icon.treeGradient);
         }
 
         private static Texture2D GradientToTexture(Gradient gradient, int width = 32)

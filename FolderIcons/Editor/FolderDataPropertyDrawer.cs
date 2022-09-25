@@ -151,7 +151,7 @@ namespace FolderIcons
                         rect.y += PROPERTY_HEIGHT + PROPERTY_PADDING;
                         break;
 
-                    case nameof(FolderData.selectionGradient):
+                    case nameof(FolderData.treeGradient):
                         DrawGradient(rect, copy, property);
                         rect.y += PROPERTY_HEIGHT + PROPERTY_PADDING;
                         break;

@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace FolderIcons
 {
-    [CreateAssetMenu(fileName = "Folder Icon Manager", menuName = "Scriptables/Others/Folder Manager", order = 400)]
+    [CreateAssetMenu(fileName = "Folder Icon Manager", menuName = "Scriptables/Others/Folder Manager")]
     public class FolderIconSettings : ScriptableObject
     {
         [Serializable]
@@ -25,8 +25,8 @@ namespace FolderIcons
             [Tooltip("Color to apply to the folder icon")]
             public Optional<Color> colorTint;
 
-            [Tooltip("Gradient visible in the project tree view")]
-            public Optional<Gradient> selectionGradient;
+            [Tooltip("Gradient to display in the project tree view")]
+            public Optional<Gradient> treeGradient;
 
             [Tooltip("Apply the editor background color before drawing the icon to ensure nothing below is visible")]
             public bool coverBackground;
