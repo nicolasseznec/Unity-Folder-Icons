@@ -5,90 +5,116 @@ using UnityEngine;
 
 namespace FolderIcons
 {
-    [CreateAssetMenu (fileName = "Folder Icon Manager", menuName = "Scriptables/Others/Folder Manager")]
+    [CreateAssetMenu(fileName = "Folder Icon Manager", menuName = "Scriptables/Others/Folder Manager", order = 400)]
     public class FolderIconSettings : ScriptableObject
     {
         [Serializable]
         public class FolderData
         {
-            [SerializeField][HideInInspector]
-            private string guid;
-            public string GUID => guid;
+            public string name;
 
-            public DefaultAsset folder;
-
+            [Tooltip("Icon image of the closed folder")]
             public Texture2D folderIcon;
+
+            [Tooltip("Icon image of the open folder")]
+            public Texture2D folderIconOpen;
+
+            [Tooltip("Icon image to overlay on top of the folder")]
             public Texture2D overlayIcon;
 
-            public void SetGUID(string guid)
+            [Tooltip("Color to apply to the folder icon")]
+            public Optional<Color> colorTint;
+
+            [Tooltip("Gradient visible in the project tree view")]
+            public Optional<Gradient> selectionGradient;
+
+            [Tooltip("Apply the editor background color before drawing the icon to ensure nothing below is visible")]
+            public bool coverBackground;
+
+            [Serializable]
+            public class FolderRef
             {
-                this.guid = guid;
+                public string guid;
+                public DefaultAsset folder;
             }
+
+            public FolderRef[] folders;
         }
 
         //Global Settings
         public bool showOverlay = true;
         public bool showCustomFolder = true;
 
-        public FolderData[] icons = new FolderData[0];
+        [Serializable]
+        public class OverlayIconModifier
+        {
+            [VectorRange(-1, 1, -1, 1)] public Vector2 offset;
+            [Range(0.5f, 2f)] public float scale = 1f;
+        }
+
+        [Tooltip("Scale and offset to apply to the overlay icon on large folders")]
+        public OverlayIconModifier largeIconProperties;
+
+        [Tooltip("Scale and offset to apply to the overlay icon on small folders")]
+        public OverlayIconModifier smallIconProperties;
+
+        [SerializeReference] public FolderData iconEditor;
+        [SerializeReference] public FolderData[] icons;
 
         public Dictionary<string, FolderData> iconMap;
 
         public void OnInitalize()
         {
-            iconMap = new Dictionary<string, FolderData> ();
+            RecreateGUIDMap();
+        }
+
+        public void RecreateGUIDMap()
+        {
+            iconMap = new Dictionary<string, FolderData>();
 
             for (int i = 0; i < icons.Length; i++)
             {
-                FolderData icon = icons[i];
-                string guid = icon.GUID;
+                var folders = icons[i].folders;
 
-                if (string.IsNullOrEmpty(guid))
+                for (int j = 0; j < folders.Length; j++)
                 {
-                    icon.SetGUID(AssetUtility.GetGUIDFromAsset(icon.folder));
-                    guid = icon.GUID;
-                }
+                    string guid = folders[j].guid;
 
-                if (iconMap.ContainsKey(guid))
-                {
-                    continue;
-                }
+                    if (string.IsNullOrEmpty(guid))
+                    {
+                        guid = AssetUtility.GetGUIDFromAsset(folders[j].folder);
+                        folders[j].guid = guid;
+                    }
 
-                iconMap.Add (guid, icons[i]);
+                    if (string.IsNullOrEmpty(guid) || iconMap.ContainsKey(guid))
+                    {
+                        continue;
+                    }
+
+                    iconMap.Add(guid, icons[i]);
+                }
             }
         }
 
-        public void UpdateGUIDMap(string oldGUID, string newGUID, int folderIndex)
+        public bool CanUpdateGUID(string newGUID)
         {
-            if (oldGUID == newGUID)
-            {
-                if (HasGUID (newGUID))
-                {
-                    iconMap.Remove (oldGUID);
-                }
-
-                return;
-            }
-
-            bool isNewFolderData = string.IsNullOrEmpty (oldGUID);
-
-            if (!isNewFolderData)
-            {
-                if (iconMap.TryGetValue (oldGUID, out FolderData icon))
-                {
-                    iconMap.Add (newGUID, icon);
-                    iconMap.Remove (oldGUID);
-                }
-            }
-            else
-            {
-                iconMap.Add (newGUID, icons[folderIndex]);
-            }
+            return !string.IsNullOrEmpty(newGUID) && !HasGUID(newGUID);  // Forbid change when the folder is already in another icon.
         }
 
         public bool HasGUID(string guid)
         {
-            return iconMap.ContainsKey (guid);
+            return iconMap.ContainsKey(guid);
+        }
+
+        public void RemoveGUID(string guid)
+        {
+            if (!string.IsNullOrEmpty(guid) && HasGUID(guid))
+                iconMap.Remove(guid);
+        }
+
+        public void AddGUID(string guid, FolderData icon)
+        {
+            iconMap[guid] = icon;
         }
     }
 }

@@ -1,545 +1,214 @@
-using System.IO;
+using System.Collections.Generic;
+using UnityEngine;
 using UnityEditor;
 using UnityEditorInternal;
-using UnityEngine;
+
 
 namespace FolderIcons
 {
-    [CustomEditor (typeof (FolderIconSettings))]
-    internal class FolderIconSettingsEditor : Editor
+    [CustomEditor(typeof(FolderIconSettings))]
+    public class FolderIconSettingsEditor : Editor
     {
         // References
         private FolderIconSettings settings;
         private SerializedProperty serializedIcons;
+        private SerializedProperty serializedIconEditor;
 
-        // Settings
-        private bool showCustomFolders;
-        private bool showCustomOverlay;
-
+        // Editor
+        private readonly List<SerializedProperty> propertiesToDraw = new();
         private ReorderableList iconList;
+        private Vector2 scrollPos;
 
-        // Texture
+        //Texture
+        private Texture2D defaultFolder;
+        private Texture2D defaultFolderOpen;
 
-        private GUIContentTexture openTexturePreview;
-        private GUIContentTexture closedTexturePreview;
-
-        private Color replacementColour = Color.gray;
-
-        // Texture Save Settings
-
-        private string textureName = "New Texture";
-        private string savePath;
-
-        private int heightIndex;
-
-        // Sizing
-
-        private const float MAX_LABEL_WIDTH = 90f;
-        private const float MAX_FIELD_WIDTH = 150f;
-
+        private const float SCROLLVIEW_HEIGHT = 250f;
         private const float PROPERTY_HEIGHT = 19f;
-        private const float PROPERTY_PADDING = 4f;
-        private const float SETTINGS_PADDING = 1F;
 
-        // Styling
-
-        private GUIStyle elementStyle;
-
+        #region Unity Callbacks
         private void OnEnable()
         {
-            if (target == null)
-            {
-                return;
-            }
+            if (target == null) return;
 
             settings = target as FolderIconSettings;
-            serializedIcons = serializedObject.FindProperty ("icons");
+            serializedIcons = serializedObject.FindProperty(nameof(FolderIconSettings.icons));
 
-            showCustomFolders = settings.showCustomFolder;
-            showCustomOverlay = settings.showOverlay;
-
-            if (iconList == null)
+            iconList ??= new ReorderableList(serializedObject, serializedIcons, true, displayHeader: false, true, true)
             {
-                iconList = new ReorderableList (serializedObject, serializedIcons)
-                {
-                    drawHeaderCallback = OnHeaderDraw,
+                drawElementCallback = OnElementDraw,
+                onSelectCallback = OnSelected,
+                onAddCallback = OnAdd,
+                onRemoveCallback = OnRemove,
+            };
 
-                    drawElementCallback = OnElementDraw,
-                    drawElementBackgroundCallback = DrawElementBackground,
+            AddCustomProperty(nameof(FolderIconSettings.showOverlay));
+            AddCustomProperty(nameof(FolderIconSettings.showCustomFolder));
+            AddCustomProperty(nameof(FolderIconSettings.largeIconProperties));
+            AddCustomProperty(nameof(FolderIconSettings.smallIconProperties));
 
-                    elementHeightCallback = GetPropertyHeight,
+            serializedIconEditor = serializedObject.FindProperty(nameof(FolderIconSettings.iconEditor));
 
-                    showDefaultBackground = false,
-                };
-            }
-
-            savePath = Application.dataPath;
-
-            closedTexturePreview = new GUIContentTexture (FolderIconConstants.TEX_FOLDER_CLOSED);
-            openTexturePreview = new GUIContentTexture (FolderIconConstants.TEX_FOLDER_OPEN);
+            defaultFolder = AssetUtility.GetTexture(FolderIconConstants.TEX_FOLDER_CLOSED);
+            defaultFolderOpen = AssetUtility.GetTexture(FolderIconConstants.TEX_FOLDER_OPEN);
         }
 
         public override void OnInspectorGUI()
         {
-            //Create styles
-            if (elementStyle == null)
-            {
-                elementStyle = new GUIStyle (GUI.skin.box)
-                {
-                };
-            }
+            serializedObject.Update();
 
-            // Draw Settings
-            EditorGUILayout.LabelField ("Settings", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Settings", EditorStyles.boldLabel);
 
-            EditorGUI.BeginChangeCheck ();
-            {
-                showCustomFolders = EditorGUILayout.ToggleLeft ("Show Folder Textures", showCustomFolders);
-                showCustomOverlay = EditorGUILayout.ToggleLeft ("Show Overlay Textures", showCustomOverlay);
-            }
-            if (EditorGUI.EndChangeCheck ())
-            {
-                ApplySettings ();
-            }
+            DrawCustomProperties();
+            EditorGUILayout.Separator();
 
-            EditorGUILayout.Space (16f);
+            DrawIconEditor();
+            EditorGUILayout.Separator();
 
-            EditorGUI.BeginChangeCheck ();
-            iconList.DoLayoutList ();
-            if (EditorGUI.EndChangeCheck ())
-            {
-                serializedObject.ApplyModifiedProperties ();
-            }
+            DrawIconList();
 
-            DrawTexturePreview ();
+            serializedObject.ApplyModifiedProperties();
+        }
+        #endregion
 
+        #region Reordarable Icons list
+        private void DrawIconList()
+        {
+            Rect headerRect = GUILayoutUtility.GetRect(GUIContent.none, GUIStyle.none, GUILayout.Height(PROPERTY_HEIGHT));
+            DrawCustomListHeader(headerRect);
+
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.Height(SCROLLVIEW_HEIGHT));
+            iconList.DoLayoutList();
+            EditorGUILayout.EndScrollView();
         }
 
-        private void ApplySettings()
+        private void DrawCustomListHeader(Rect rect)
         {
-            settings.showCustomFolder = showCustomFolders;
-            settings.showOverlay = showCustomOverlay;
+            Handles.BeginGUI();
+            Handles.DrawSolidRectangleWithOutline(rect,
+                new Color(0.15f, 0.15f, 0.15f, 1f),
+                new Color(0.15f, 0.15f, 0.15f, 1f));
+            Handles.EndGUI();
 
-            EditorApplication.RepaintProjectWindow ();
-        }
+            rect.x += 6f;
 
-        #region Reorderable Array Draw
-
-        private void OnHeaderDraw(Rect rect)
-        {
-            rect.y += 5f;
-            rect.x -= 6f;
-            rect.width += 12f;
-
-            Handles.BeginGUI ();
-            Handles.DrawSolidRectangleWithOutline (rect,
-                new Color (0.15f, 0.15f, 0.15f, 1f),
-                new Color (0.15f, 0.15f, 0.15f, 1f));
-            Handles.EndGUI ();
-
-            EditorGUI.LabelField (rect, "Folders", EditorStyles.boldLabel);
+            EditorGUI.LabelField(rect, "Icons", EditorStyles.boldLabel);
         }
 
         private void OnElementDraw(Rect rect, int index, bool isActive, bool isFocused)
         {
-            SerializedProperty property = serializedIcons.GetArrayElementAtIndex (index);
+            var element = serializedIcons.GetArrayElementAtIndex(index);
 
-            float fullWidth = rect.width;
-
-            // Set sizes for correct draw
-            float originalLabelWidth = EditorGUIUtility.labelWidth;
-            float rectWidth = MAX_LABEL_WIDTH + MAX_FIELD_WIDTH;
-            EditorGUIUtility.labelWidth = Mathf.Min (EditorGUIUtility.labelWidth, MAX_LABEL_WIDTH);
-            rect.width = Mathf.Min (rect.width, rectWidth);
-
-            //Draw property and settings in a line
-
-            EditorGUI.BeginChangeCheck ();
-
-            DrawPropertyNoDepth (rect, property);
-
-            if (EditorGUI.EndChangeCheck())
+            if (element.managedReferenceValue == null)
             {
-                SerializedProperty folderProp = property.FindPropertyRelative ("folder");
-
-                if (folderProp.objectReferenceValue != null)
-                {
-                    SerializedProperty guidProp = property.FindPropertyRelative ("guid");
-
-                    string oldGUID = guidProp.stringValue;
-                    string newGUID = AssetUtility.GetGUIDFromAsset (folderProp.objectReferenceValue);
-
-                    settings.UpdateGUIDMap (oldGUID, newGUID, index);
-                    EditorApplication.RepaintProjectWindow ();
-                }
-            }
-
-
-            // ==========================
-            //     Draw Icon Example
-            // ==========================
-            rect.x += rect.width;
-            rect.width = fullWidth - rect.width;
-
-            // References
-            SerializedProperty folderTexture = property.FindPropertyRelative ("folderIcon");
-            SerializedProperty overlayTexture = property.FindPropertyRelative ("overlayIcon");
-
-            // Object checks
-            Object folderObject = folderTexture.objectReferenceValue;
-            Object overlayObject = overlayTexture.objectReferenceValue;
-
-            FolderGUI.DrawFolderPreview (rect, folderObject as Texture, overlayObject as Texture);
-
-            // Revert width modification
-            EditorGUIUtility.labelWidth = originalLabelWidth;
-        }
-
-        private void DrawPropertyNoDepth(Rect rect, SerializedProperty property)
-        {
-            rect.width++;
-            Handles.BeginGUI ();
-            Handles.DrawSolidRectangleWithOutline (rect, Color.clear, new Color (0.15f, 0.15f, 0.15f, 1f));
-            Handles.EndGUI ();
-
-            rect.x++;
-            rect.width -= 3;
-            rect.y += PROPERTY_PADDING;
-            rect.height = PROPERTY_HEIGHT;
-
-            SerializedProperty copy = property.Copy ();
-            bool enterChildren = true;
-
-            while (copy.NextVisible (enterChildren))
-            {
-                if (SerializedProperty.EqualContents (copy, property.GetEndProperty ()))
-                {
-                    break;
-                }
-
-                EditorGUI.PropertyField (rect, copy, false);
-                rect.y += PROPERTY_HEIGHT + PROPERTY_PADDING;
-
-                enterChildren = false;
-            }
-        }
-
-        private void DrawElementBackground(Rect rect, int index, bool isActive, bool isFocused)
-        {
-            EditorGUI.LabelField (rect, "", elementStyle);
-
-            Color fill = (isFocused) ? FolderIconConstants.SelectedColor : Color.clear;
-
-            Handles.BeginGUI ();
-            Handles.DrawSolidRectangleWithOutline (rect, fill, new Color (0.15f, 0.15f, 0.15f, 1f));
-            Handles.EndGUI ();
-        }
-
-        // ========================
-        //
-        // ========================
-
-        private int GetPropertyCount(SerializedProperty property)
-        {
-            return property.CountInProperty () - 1;
-        }
-
-        private float GetPropertyHeight(SerializedProperty property)
-        {
-            if (heightIndex == 0)
-            {
-                heightIndex = property.CountInProperty ();
-            }
-
-            // return (PROPERTY_HEIGHT + PROPERTY_PADDING) * (heightIndex-1) + PROPERTY_PADDING;
-
-            //Property count returning wrong, so just supplying 3 for now
-            //TODO: Investigate GetPropertyCount and find issue with invalid value
-            return (PROPERTY_HEIGHT + PROPERTY_PADDING) * (3) + PROPERTY_PADDING;
-        }
-
-        private float GetPropertyHeight(int index)
-        {
-            return GetPropertyHeight (serializedIcons.GetArrayElementAtIndex (index));
-        }
-
-        #endregion Reorderable Array Draw
-
-        #region Texture Preview/Creation
-
-        /// <summary>
-        /// Draw the preview for the texture
-        /// </summary>
-        private void DrawTexturePreview()
-        {
-            EditorGUI.BeginChangeCheck ();
-            {
-                EditorGUILayout.LabelField ("Texture Creator", EditorStyles.boldLabel);
-
-                EditorGUILayout.BeginHorizontal ();
-                {
-
-                    EditorGUILayout.BeginVertical ();
-                    {
-                        EditorGUILayout.LabelField ("Colour", GUILayout.Width (64f));
-                        replacementColour = EditorGUILayout.ColorField (new GUIContent (), replacementColour, true, false, false);
-
-                        EditorGUILayout.Space ();
-
-                        // Texture Name
-                        GUILayout.Label ("Texture Name");
-                        GUILayout.BeginHorizontal ();
-                        {
-                            textureName = EditorGUILayout.TextField ( textureName);
-
-                            EditorGUI.BeginDisabledGroup (true);
-                            GUILayout.TextField (".png", GUILayout.Width (40f));
-                            EditorGUI.EndDisabledGroup ();
-                        }
-                        GUILayout.EndHorizontal ();
-
-                        EditorGUILayout.Space ();
-
-                        // Save Path
-                        GUILayout.Label ("Save Path");
-                        GUILayout.BeginHorizontal ();
-                        {
-                            savePath = EditorGUILayout.TextField (savePath);
-
-                            if (GUILayout.Button ("Select", GUILayout.MaxWidth (60f)))
-                            {
-                                savePath = EditorUtility.OpenFolderPanel ("Save Path", "Assets", "");
-                                GUIUtility.ExitGUI ();
-                            }
-
-                        }
-                        GUILayout.EndHorizontal ();
-
-                        GUILayout.Label (
-                          string.Format ("Textures will be saved as\n - {0}_{1}\n - {0}_{2}", textureName, "Closed", "Open"),
-                          EditorStyles.miniLabel);
-
-                        GUILayout.FlexibleSpace ();
-                    }
-                    EditorGUILayout.EndVertical ();
-
-                    EditorGUILayout.BeginVertical ();
-                    {
-                        closedTexturePreview.DrawGUIContent ("Closed");
-                        openTexturePreview.DrawGUIContent ("Open");
-                    }
-                    EditorGUILayout.EndVertical ();
-                }
-                EditorGUILayout.EndHorizontal ();
-
-                if (GUILayout.Button ("Save Textures", GUILayout.Height (32f)))
-                {
-                    SaveTextureAsPNG (closedTexturePreview.Texture, GetTextureSavePath("Closed"));
-                    SaveTextureAsPNG (openTexturePreview.Texture, GetTextureSavePath ("Open"));
-                }
-            }
-            if (EditorGUI.EndChangeCheck())
-            {
-                UpdatePreviews ();
-            }
-
-        }
-
-        /// <summary>
-        /// Display settings for saving the modified texture
-        /// </summary>
-        private void DrawTextureSaving()
-        {
-            EditorGUILayout.BeginVertical ();
-            // Texture Name
-
-            EditorGUILayout.LabelField ("Texture Name");
-            {
-                textureName = EditorGUILayout.TextField (textureName);
-
-                EditorGUI.BeginDisabledGroup (true);
-                GUILayout.TextField (".png", GUILayout.Width (40f));
-                EditorGUI.EndDisabledGroup ();
-            }
-
-            // Save Path
-            GUILayout.BeginHorizontal ();
-            {
-                savePath = EditorGUILayout.TextField ("Save Path", savePath);
-
-                if (GUILayout.Button ("Select", GUILayout.MaxWidth (80f)))
-                {
-                    savePath = EditorUtility.OpenFolderPanel ("Texture Save Path", "Assets", "");
-                    GUIUtility.ExitGUI ();
-                }
-            }
-            GUILayout.EndHorizontal ();
-
-            EditorGUILayout.EndVertical ();
-
-
-            if (GUILayout.Button ("Save Texture"))
-            {
-                string fullPath = $"{savePath}/{textureName}.png";
-                //SaveTextureAsPNG (previewTexture, fullPath);
-            }
-        }
-
-        /// <summary>
-        /// Apply colour to preview texture
-        /// </summary>
-        private void UpdatePreviews()
-        {
-            closedTexturePreview.UpdateTexture (replacementColour);
-            openTexturePreview.UpdateTexture (replacementColour);
-        }
-
-        /// <summary>
-        /// Save the preview texture at the given path
-        /// </summary>
-        /// <param name="texture">The preview texture</param>
-        /// <param name="path">The path to save the texture at</param>
-        private void SaveTextureAsPNG(Texture2D texture, string path)
-        {
-            if (string.IsNullOrWhiteSpace (path) || !path.Contains ("Assets"))
-            {
-                Debug.LogWarning ("Cannot save texture to invalid path.");
+                EditorGUI.LabelField(rect, "<null>");
                 return;
             }
 
-            byte[] bytes = texture.EncodeToPNG ();
-            File.WriteAllBytes (path, bytes);
+            // Draw Icon Preview
+            float fullWidth = rect.width;
+            rect.width = rect.height;
+            DrawListIconPreview(rect, element);
 
-            AssetDatabase.Refresh ();
+            // Draw Icon Name
+            var name = element.FindPropertyRelative(nameof(FolderIconSettings.FolderData.name));
 
-            int localPathIndex = path.IndexOf ("Assets");
-            path = path.Substring (localPathIndex, path.Length - localPathIndex);
-
-            TextureImporter importer = AssetImporter.GetAtPath (path) as TextureImporter;
-
-            importer.textureType = TextureImporterType.GUI;
-            importer.isReadable = true;
-
-            AssetDatabase.ImportAsset (path);
-            AssetDatabase.Refresh ();
+            rect.x += rect.width + 5f;
+            rect.width = fullWidth - rect.width;
+            EditorGUI.LabelField(rect, name.stringValue);
         }
 
-        private string GetTextureSavePath(string textureEnding)
+        private void DrawListIconPreview(Rect rect, SerializedProperty property)
         {
-            return string.Format ("{0}/{1}_{2}.png", savePath, textureName, textureEnding);
+            FolderGUI.DrawFolderPreviewFromProperty(rect, property, open: false, small: true);
         }
 
-        #endregion Texture Preview/Creation
-
-        private class GUIContentTexture
+        private void OnSelected(ReorderableList list)
         {
-            private string previousIcon;
+            int selected = list.index;
+            var iconProp = (selected < serializedIcons.arraySize) ? serializedIcons.GetArrayElementAtIndex(selected) : null;
+            UpdateIconEditor(iconProp);
+        }
 
-            public GUIContent GUIContent { get; private set; }
-            public Texture2D Texture { get; private set; }
-            public RenderTexture Renderer { get; private set; }
-
-            private Color[] oldColours;
-            private Color[] newColours;
-
-            private bool isDirty = false;
-
-            public GUIContentTexture(string iconName)
+        private void OnRemove(ReorderableList list)
+        {
+            // Remove every GUID of the removed icon from the iconMap 
+            int removed = list.index;
+            var iconProp = serializedIcons.GetArrayElementAtIndex(removed);
+            var foldersProp = iconProp.FindPropertyRelative(nameof(FolderIconSettings.FolderData.folders));
+            foreach (SerializedProperty folderProp in foldersProp)
             {
-                UpdateGUIContent (iconName);
-            }
-
-            ~GUIContentTexture()
-            {
-                if (Renderer != null)
+                var guidProp = folderProp.FindPropertyRelative(nameof(FolderIconSettings.FolderData.FolderRef.guid));
+                string guid = guidProp.stringValue;
+                if (!string.IsNullOrEmpty(guid) && settings.HasGUID(guid))
                 {
-                    Renderer.Release ();
+                    settings.iconMap.Remove(guid);
                 }
             }
 
-            public void UpdateGUIContent(string iconName)
+            ReorderableList.defaultBehaviours.DoRemoveButton(list);
+            OnSelected(list);
+        }
+
+        private void OnAdd(ReorderableList list)
+        {
+            ReorderableList.defaultBehaviours.DoAddButton(list);
+
+            // Create the element
+            var newIcon = new FolderIconSettings.FolderData
             {
-                // We only need to update data if the icon has changed
-                if (previousIcon != iconName)
-                {
-                    // Get icon
-                    GUIContent = EditorGUIUtility.IconContent (iconName);
+                name = "New Icon",
+                colorTint = new Optional<Color>(FolderIconConstants.DefaultFolderColor),
+                folderIcon = defaultFolder,
+                folderIconOpen = defaultFolderOpen,
+            };
+            var iconProp = serializedIcons.GetArrayElementAtIndex(list.index);
+            iconProp.managedReferenceValue = newIcon;
 
-                    // Check if the renderer and texture need updated
-                    Texture tex = GUIContent.image;
-                    int width = Mathf.Min (256, tex.width);
-                    int height = Mathf.Min (256, tex.height);
+            UpdateIconEditor(iconProp);
 
-                    if (Texture == null || (Texture.width != width || Texture.height != height))
-                    {
-                        if (Renderer != null)
-                        {
-                            Renderer.Release ();
-                        }
+            scrollPos.y += 30; // Ensure footer is still visible
+        }
+        #endregion
 
-                        Renderer = new RenderTexture (width, height, 16);
-                        Texture = new Texture2D (width, height)
-                        {
-                            alphaIsTransparency = true
-                        };
-
-                        newColours = new Color[width * height];
-                    }
-
-                    // Update state cache
-                    previousIcon = iconName;
-                    isDirty = true;
-                }
-
-                UpdateTexture (Color.white);
+        #region Icon Editor
+        private void DrawIconEditor()
+        {
+            if (serializedIconEditor.managedReferenceValue != null)
+            {
+                FolderDataPropertyDrawer.folderDataIndex = iconList.index;
+                EditorGUILayout.PropertyField(serializedIconEditor);
+                return;
             }
 
-            public void UpdateTexture(Color color)
+            // Draw Empty Icon Editor
+            // TODO : Box with button to add element to the icon list, and disclaimer that reads "No Icon has been created yet."
+        }
+
+        private void UpdateIconEditor(SerializedProperty property)
+        {
+            if (property != null)
+                serializedIconEditor.managedReferenceId = property.managedReferenceId;
+            else
+                serializedIconEditor.managedReferenceValue = null;
+        }
+        #endregion
+
+        #region General Custom Properties
+        private SerializedProperty AddCustomProperty(string propertyName)
+        {
+            var property = serializedObject.FindProperty(propertyName);
+            propertiesToDraw.Add(property);
+            return property;
+        }
+
+        protected void DrawCustomProperties()
+        {
+            foreach (var property in propertiesToDraw)
             {
-                int width = Texture.width;
-                int height = Texture.height;
-
-                if (isDirty)
-                {
-                    Graphics.Blit (GUIContent.image, Renderer);
-                    Texture.ReadPixels (new Rect (0, 0, width, height), 0, 0);
-                }
-
-                oldColours = Texture.GetPixels ();
-
-                int len = width * height;
-                int i = 0;
-
-                for (int x = 0; x < width; x++)
-                {
-                    for (int y = 0; y < height; y++)
-                    {
-                        i = y * width + x;
-
-                        newColours[i] = color;
-                        newColours[i].a = oldColours[i].a;
-                    }
-                }
-
-                Texture.SetPixels (newColours);
-                Texture.Apply ();
-
-                if (isDirty)
-                {
-                    GUIContent.image = Texture;
-                    isDirty = false;
-                }
-            }
-
-            public void DrawGUIContent(string label)
-            {
-                EditorGUILayout.BeginVertical (GUILayout.Width (64));
-
-                EditorGUILayout.LabelField (label, EditorStyles.label, GUILayout.Width (64));
-                EditorGUILayout.LabelField (GUIContent, EditorStyles.objectFieldThumb, GUILayout.Width (64), GUILayout.Height (64f));
-
-                EditorGUILayout.EndVertical ();
+                EditorGUILayout.PropertyField(property);
             }
         }
+        #endregion
     }
 }
