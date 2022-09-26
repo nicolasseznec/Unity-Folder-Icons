@@ -59,7 +59,7 @@ namespace FolderIcons
         public OverlayIconModifier smallIconProperties;
 
         [SerializeReference] public FolderData iconEditor;
-        [SerializeReference] public FolderData[] icons;
+        [SerializeReference] public FolderData[] icons = new FolderData[0];
 
         public Dictionary<string, FolderData> iconMap;
 
