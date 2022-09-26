@@ -9,6 +9,7 @@ namespace FolderIcons
     [CustomPropertyDrawer(typeof(FolderData))]
     public class FolderDataPropertyDrawer : PropertyDrawer
     {
+        // Sizing
         private const float MAX_LABEL_WIDTH = 100f;
         private const float MAX_FIELD_WIDTH = 150f;
 
@@ -18,12 +19,11 @@ namespace FolderIcons
 
         private const float SCROLLVIEW_HEIGHT = 122f;
 
-        private readonly Dictionary<string, ReorderableList> reorderableLists = new();
-
         // References
         private ReorderableList folders;
         private SerializedProperty foldersProp;
         private SerializedProperty iconProp;
+        private readonly Dictionary<string, ReorderableList> reorderableLists = new();
 
         // Scrollview
         private Vector2 scrollPos;
@@ -57,6 +57,10 @@ namespace FolderIcons
             Rect sidePropertiesRect = DrawSideProperties(position, property);
             float lastPropertyY = sidePropertiesRect.yMax;
 
+            Rect createTextureButtonRect = position;
+            createTextureButtonRect.y = lastPropertyY + PROPERTY_HEIGHT;
+            DrawCreateTextureButton(createTextureButtonRect, property);
+
             position.x += position.width;
             position.width = originalRect.width - position.width;
 
@@ -71,7 +75,20 @@ namespace FolderIcons
             DrawFolders(position, property);
             EditorGUI.EndProperty();
         }
+        private Rect DrawHeader(Rect rect)
+        {
+            Rect _rect = rect;
+            _rect.height = PROPERTY_HEIGHT;
 
+            FolderGUI.DrawBackground(_rect, FolderIconConstants.BgOutlineColor, FolderIconConstants.BgOutlineColor);
+            _rect.x += 6f;
+            EditorGUI.LabelField(_rect, "Icon Editor", EditorStyles.boldLabel);
+
+            rect.y += PROPERTY_HEIGHT;
+            return rect;
+        }
+
+        #region Draw Preview
         private void DrawPreview(Rect position, SerializedProperty property, float sidePropertiesHeight)
         {
             position.height = sidePropertiesHeight;
@@ -107,19 +124,7 @@ namespace FolderIcons
             position.x = middle + fullWidth * 0.1f;
             FolderGUI.DrawFolderPreviewFromProperty(position, property, open: true, small: true);
         }
-
-        private Rect DrawHeader(Rect rect)
-        {
-            Rect _rect = rect;
-            _rect.height = PROPERTY_HEIGHT;
-
-            FolderGUI.DrawBackground(_rect, FolderIconConstants.BgOutlineColor, FolderIconConstants.BgOutlineColor);
-            _rect.x += 6f;
-            EditorGUI.LabelField(_rect, "Icon Editor", EditorStyles.boldLabel);
-
-            rect.y += PROPERTY_HEIGHT;
-            return rect;
-        }
+        #endregion
 
         #region Draw Side Properties
         private Rect DrawSideProperties(Rect rect, SerializedProperty property)
@@ -340,6 +345,29 @@ namespace FolderIcons
             }
             ReorderableList.defaultBehaviours.DoRemoveButton(list);
         }
+        #endregion
+
+        #region Create Texture Window
+        private void DrawCreateTextureButton(Rect rect, SerializedProperty property)
+        {
+            rect.x += rect.width * 0.2f;
+            rect.width *= 0.6f;
+            rect.height = PROPERTY_HEIGHT;
+
+            if (GUI.Button(rect, new GUIContent("Save Folder Texture", "Open a window that allows to create and save an image for the current Icon.")))
+            {
+                var folderProp = property.FindPropertyRelative(nameof(FolderData.folderIcon));
+                Texture2D folderTexture = folderProp.objectReferenceValue as Texture2D;
+
+                var colorProp = property.FindPropertyRelative(nameof(FolderData.colorTint));
+                Optional<Color> color = (colorProp.FindPropertyRelative("enabled").boolValue)
+                    ? new(colorProp.FindPropertyRelative("value").colorValue)
+                    : new();
+
+                CreateTextureWindow.ShowWindow(folderTexture, color);
+            }
+        }
+
         #endregion
     }
 }
