@@ -48,6 +48,9 @@ namespace FolderIcons
 
         #region Colors
         // Colours
+        public static readonly Color BgFaceColor = new(0.18f, 0.18f, 0.18f, 1f);
+        
+        public static readonly Color BgOutlineColor = new(0.15f, 0.15f, 0.15f, 1f);
 
         private static readonly bool isDarkTheme = EditorGUIUtility.isProSkin;
 

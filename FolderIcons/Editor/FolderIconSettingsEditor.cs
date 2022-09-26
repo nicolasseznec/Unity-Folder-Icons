@@ -25,6 +25,7 @@ namespace FolderIcons
 
         private const float SCROLLVIEW_HEIGHT = 250f;
         private const float PROPERTY_HEIGHT = 19f;
+        private const float BUTTON_HEIGHT = 40f;
 
         #region Unity Callbacks
         private void OnEnable()
@@ -84,14 +85,8 @@ namespace FolderIcons
 
         private void DrawCustomListHeader(Rect rect)
         {
-            Handles.BeginGUI();
-            Handles.DrawSolidRectangleWithOutline(rect,
-                new Color(0.15f, 0.15f, 0.15f, 1f),
-                new Color(0.15f, 0.15f, 0.15f, 1f));
-            Handles.EndGUI();
-
+            FolderGUI.DrawBackground(rect, FolderIconConstants.BgOutlineColor, FolderIconConstants.BgOutlineColor);
             rect.x += 6f;
-
             EditorGUI.LabelField(rect, "Icons", EditorStyles.boldLabel);
         }
 
@@ -196,16 +191,26 @@ namespace FolderIcons
 
         private void DrawEmptyIconEditor()
         {
-            // TODO : Box with button to add element to the icon list, and disclaimer that reads "No Icon has been created yet."
-            //float height = EditorGUI.GetPropertyHeight(serializedIconEditor);
-            //Rect rect = GUILayoutUtility.GetRect(GUIContent.none, GUIStyle.none, GUILayout.Height(height));
+            float height = EditorGUI.GetPropertyHeight(serializedIconEditor);
+            Rect rect = GUILayoutUtility.GetRect(GUIContent.none, GUIStyle.none, GUILayout.Height(height));
 
-            //Rect rect = EditorGUILayout.BeginVertical();
-            //EditorGUILayout.HelpBox("No Icon has been created yet.", MessageType.None, false);
-            //if (GUILayout.Button("Create New Icon", GUILayout.Width(200)))
-            //{
-            //    OnAdd(iconList);
-            //}
+            FolderGUI.DrawBackground(rect, FolderIconConstants.BgFaceColor, FolderIconConstants.BgOutlineColor);
+
+            rect.y += (rect.height * 0.5f) -  BUTTON_HEIGHT * 0.5f;
+            rect.height = BUTTON_HEIGHT;
+
+            rect.x += rect.width * 0.25f;
+            rect.width *= 0.5f;
+
+            if (GUI.Button(rect, "Create New Icon"))
+            {
+                OnAdd(iconList);
+            }
+
+            rect.y -= BUTTON_HEIGHT + PROPERTY_HEIGHT;
+            rect.width += 50f;
+            rect.x -= 25f;
+            EditorGUI.HelpBox(rect, "No Icon has been created yet.", MessageType.Info);
         }
         #endregion
 

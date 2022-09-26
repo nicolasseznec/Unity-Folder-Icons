@@ -53,6 +53,25 @@ namespace FolderIcons
             DrawFolderTexture(rect, folderTexture, color);
             DrawOverlayTexture(rect, overlayIconTexture, scaleProp.floatValue, offsetProp.vector2Value);
         }
+
+        /// <summary>
+        /// Draw a background in the editor
+        /// </summary>
+        /// <param name="rect">Rectangle to draw the background within</param>
+        /// <param name="faceColor">Color to use inside the background</param>
+        /// <param name="outlineColor">Color to use for the outline of the background</param>
+        /// <param name="retract">Shrink the background by a certain amount</param>
+        public static void DrawBackground(Rect rect, Color faceColor, Color outlineColor, int retract = 0)
+        {
+            rect.height -= retract * 2;
+            rect.y += retract;
+            rect.width -= retract * 2;
+            rect.x += retract;
+
+            Handles.BeginGUI();
+            Handles.DrawSolidRectangleWithOutline(rect, faceColor, outlineColor);
+            Handles.EndGUI();
+        }
         #endregion
 
         #region Icon Draw

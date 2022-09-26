@@ -30,10 +30,6 @@ namespace FolderIcons
         private Rect listRect;
         private Rect scrollViewRect;
 
-        // Backgrounds
-        private Color bgFaceColor = new(0.18f, 0.18f, 0.18f, 1f);
-        private Color bgOutlineColor = new(0.15f, 0.15f, 0.15f, 1f);
-
         // Serves to know which icon is being modified. Could also look into the serialized property path instead.
         public static int folderDataIndex;
 
@@ -52,7 +48,7 @@ namespace FolderIcons
 
             position.y += PROPERTY_PADDING;
 
-            DrawBackground(position, Color.clear, bgOutlineColor);
+            FolderGUI.DrawBackground(position, Color.clear, FolderIconConstants.BgOutlineColor);
             position = DrawHeader(position);
 
             Rect originalRect = position;
@@ -82,16 +78,16 @@ namespace FolderIcons
 
             // Draw Backgrounds
             Rect backgroundRect = position;
-            DrawBackground(backgroundRect, bgFaceColor, bgOutlineColor, 4);
+            FolderGUI.DrawBackground(backgroundRect, FolderIconConstants.BgFaceColor, FolderIconConstants.BgOutlineColor, 4);
 
-            backgroundRect.y += backgroundRect.height - 4;
+            backgroundRect.y += backgroundRect.height;
             backgroundRect.height *= 0.4f;
 
             backgroundRect.width *= 0.5f;
-            DrawBackground(backgroundRect, bgFaceColor, bgOutlineColor, 4);
+            FolderGUI.DrawBackground(backgroundRect, FolderIconConstants.BgFaceColor, FolderIconConstants.BgOutlineColor, 4);
 
             backgroundRect.x += backgroundRect.width;
-            DrawBackground(backgroundRect, bgFaceColor, bgOutlineColor, 4);
+            FolderGUI.DrawBackground(backgroundRect, FolderIconConstants.BgFaceColor, FolderIconConstants.BgOutlineColor, 4);
 
             // Draw Large Preview
             FolderGUI.DrawFolderPreviewFromProperty(position, property, open: false, small: false);
@@ -117,27 +113,12 @@ namespace FolderIcons
             Rect _rect = rect;
             _rect.height = PROPERTY_HEIGHT;
 
-            DrawBackground(_rect, bgOutlineColor, bgOutlineColor);
+            FolderGUI.DrawBackground(_rect, FolderIconConstants.BgOutlineColor, FolderIconConstants.BgOutlineColor);
             _rect.x += 6f;
             EditorGUI.LabelField(_rect, "Icon Editor", EditorStyles.boldLabel);
 
             rect.y += PROPERTY_HEIGHT;
             return rect;
-        }
-
-        private void DrawBackground(Rect rect, Color faceColor, Color outlineColor, int retract = 0)
-        {
-            rect.height -= retract * 2;
-            rect.y += retract;
-            rect.width -= retract * 2;
-            rect.x += retract;
-
-            rect.width += 4f;
-            rect.x -= 2f;
-
-            Handles.BeginGUI();
-            Handles.DrawSolidRectangleWithOutline(rect, faceColor, outlineColor);
-            Handles.EndGUI();
         }
 
         #region Draw Side Properties
@@ -315,11 +296,7 @@ namespace FolderIcons
         {
             rect.height = PROPERTY_HEIGHT;
             rect.width -= 20f;
-            Handles.BeginGUI();
-            Handles.DrawSolidRectangleWithOutline(rect,
-                new Color(0.20f, 0.20f, 0.20f, 1f),
-                new Color(0.15f, 0.15f, 0.15f, 1f));
-            Handles.EndGUI();
+            FolderGUI.DrawBackground(rect, new Color(0.20f, 0.20f, 0.20f, 1f), FolderIconConstants.BgOutlineColor);
             rect.x += 6f;
             EditorGUI.LabelField(rect, "Folders", EditorStyles.boldLabel);
         }
