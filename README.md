@@ -1,15 +1,13 @@
 <h1 align="center">  
  <br>
- <img src="https://i.imgur.com/sNNdxbt.png">
+ <img src="https://user-images.githubusercontent.com/73669610/192280334-c2d08401-a3cd-4cf5-9a59-95f3c1c58ee6.PNG">
   Unity-Folder-Icons
 </h1>
 
-<h4 align="center">Lightweight Unity Utility adding coloured folders and icons to your project window</h4>
-
 <p align="center">
  <a href="https://unity3d.com/get-unity/download">
- <img src="https://img.shields.io/badge/unity-2019.3%2B-blue.svg" alt="Unity Download Link">
- <a href="https://github.com/WooshiiDev/HierarchyDecorator/blob/master/LICENSE">
+ <img src="https://img.shields.io/badge/unity-2021.3%2B-blue.svg" alt="Unity Download Link">
+ <a href="https://github.com/WooshiiDev/Unity-Folder-Icons/blob/main/LICENSE">
  <img src="https://img.shields.io/badge/License-MIT-brightgreen.svg" alt="License MIT">
 </p>
    
@@ -55,10 +53,24 @@ Currently, Folder Icons primary features are:
 ### Folder Custom Textures/Icons
 
 Project Folders can have custom icons and textures applied through the Folder Icons ScriptableObject.
-You can add and remove folders from the list displayed at the top of the settings.
+You can add and remove icons from the list displayed at the bottom of the settings.
 
 <p align="center">
- <img src="https://i.imgur.com/4KceZyF.png" alt="Custom Folder/Icon Textures">
+ <img src="https://user-images.githubusercontent.com/73669610/192280809-39e4f033-6e59-41eb-be85-3eab4ae1a4c1.PNG">
+</p>
+
+The icons themselves can be modified right above, in the icon editor. Simply select the icon to modify in the list and change its properties. It is possible to customize the folder textures as well as the icon to overlay on top of it. The folder texture can optionally be tinted with a color.
+
+The overlay icon scale and position can be tweaked  at the top of the settings, both for small and large folder independently.
+
+<p align="center">
+ <img src="https://user-images.githubusercontent.com/73669610/192281030-e5de430a-ea90-42c7-b721-d5b8722408a8.PNG">
+</p>
+
+At last, it is possible to customize a gradient that will be display along the folder in the project tree view.
+
+<p align="center">
+ <img src="https://user-images.githubusercontent.com/73669610/192281467-fe5ce3d5-079d-4cde-8354-01123a46be73.png">
 </p>
 
 ### Flat Texture Creator
@@ -68,7 +80,7 @@ Generally, you don't want folders to be noisey or overly messy. Directories need
 The texture creator, will take in a texture, and apply a custom colour to all visible pixels in respect to the alpha. These textures can then be saved and used for folders or icons. 
 
 <p align="center">
- <img src="https://i.imgur.com/G1Jn4Jg.png" alt="Texture Creator">
+ <img src="https://user-images.githubusercontent.com/73669610/192281153-fbb80688-eb90-4008-9feb-43263ecce30e.PNG">
 </p>
 
 ## Support
