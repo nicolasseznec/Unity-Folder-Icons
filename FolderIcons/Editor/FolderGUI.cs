@@ -269,7 +269,7 @@ namespace FolderIcons
 
         private static Texture2D GetGradientTexture(FolderData icon)
         {
-            if (gradientCache.TryGetValue(icon, out Texture2D gradTex))
+            if (gradientCache.TryGetValue(icon, out Texture2D gradTex) && gradTex != null)
             {
                 return gradTex;
             }
