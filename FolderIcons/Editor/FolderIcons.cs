@@ -53,7 +53,7 @@ namespace FolderIcons
 
             if (settings.iconMap.TryGetValue(guid, out FolderIconSettings.FolderData icon))
             {
-                FolderGUI.DrawCustomFolder(selectionRect, guid, settings, icon);
+                FolderGUI.DrawCustomFolder(selectionRect, guid, folderAsset.GetInstanceID(), settings, icon);
                 ProjectViewUtility.ResetIsPrevCustomIcon();
             }
         }

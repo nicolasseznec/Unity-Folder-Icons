@@ -80,9 +80,10 @@ namespace FolderIcons
         /// </summary>
         /// <param name="rect">The original folder rect.</param>
         /// <param name="guid">The GUID of the folder to draw.</param>
+        /// <param name="id">The instanceID of the folder.</param>
         /// <param name="settings">The global settings.</param>
         /// <param name="icon">The folder icon data.</param>
-        public static void DrawCustomFolder(Rect rect, string guid, FolderIconSettings settings, FolderData icon)
+        public static void DrawCustomFolder(Rect rect, string guid, int id, FolderIconSettings settings, FolderData icon)
         {
             // Parameters
             bool small = IsTreeView(rect) && IsSideView(rect);
@@ -109,7 +110,7 @@ namespace FolderIcons
             // Drawing
             if (icon.coverBackground)
             {
-                DrawBackgroundCover(folderRect, guid, small);
+                DrawBackgroundCover(folderRect, id, small);
             }
 
             if (small && icon.treeGradient)
@@ -176,13 +177,13 @@ namespace FolderIcons
         /// <param name="rect">The rectangle to cover</param>
         /// <param name="guid">GUID of the folder to cover</param>
         /// <param name="small">If the icon is in the project tree</param>
-        public static void DrawBackgroundCover(Rect rect, string guid, bool small)
+        public static void DrawBackgroundCover(Rect rect, int id, bool small)
         {
             Color color;
 
             if (small)
             {
-                if (ProjectViewUtility.IsFolderSelected(AssetDatabase.GUIDToAssetPath(guid)))
+                if (ProjectViewUtility.IsFolderSelected(id))
                 {
                     color = ProjectViewUtility.HasTreeViewFocus() ? FolderIconConstants.SelectedColor : FolderIconConstants.UnfocusColor;
                 }

@@ -4,7 +4,6 @@ using System.Reflection;
 using UnityEngine;
 using UnityEditor;
 
-
 namespace FolderIcons
 {
     /// <summary>
@@ -19,8 +18,15 @@ namespace FolderIcons
         private static Type projectWindowUtilType;
 
         private static FieldInfo m_FolderTree;
+        private static FieldInfo m_AssetTree;
         private static MethodInfo hasFocusMethod;
-        private static MethodInfo getActiveFolderPath;
+        private static MethodInfo isItemDragSelectedOrSelectedMethod;
+        private static MethodInfo findItemMethod;
+        private static MethodInfo getProjectBrowserIfExistsMethod;
+
+        // Caching the ProjectBrower Window
+        private static EditorWindow projectWindow;
+        private static object folderTree;
 
         // Knowing if a folder is open in tree view
         private static string prevGuid;
@@ -37,10 +43,13 @@ namespace FolderIcons
             treeViewControllerType = editorAssembly.GetType("UnityEditor.IMGUI.Controls.TreeViewController");
 
             m_FolderTree = projectBrowserType.GetField("m_FolderTree", BindingFlags.NonPublic | BindingFlags.Instance);
+            m_AssetTree = projectBrowserType.GetField("m_AssetTree", BindingFlags.NonPublic | BindingFlags.Instance);
             hasFocusMethod = treeViewControllerType.GetMethod("HasFocus", BindingFlags.Instance | BindingFlags.Public);
+            isItemDragSelectedOrSelectedMethod = treeViewControllerType.GetMethod("IsItemDragSelectedOrSelected", BindingFlags.Instance | BindingFlags.Public);
+            findItemMethod = treeViewControllerType.GetMethod("FindItem", BindingFlags.Instance | BindingFlags.Public);
 
             projectWindowUtilType = typeof(ProjectWindowUtil);
-            getActiveFolderPath = projectWindowUtilType.GetMethod("GetActiveFolderPath", BindingFlags.Static | BindingFlags.NonPublic);
+            getProjectBrowserIfExistsMethod = projectWindowUtilType.GetMethod("GetProjectBrowserIfExists", BindingFlags.Static | BindingFlags.NonPublic);
 
             // Open folders
             openFoldersCache = new Dictionary<string, bool>();
@@ -51,14 +60,7 @@ namespace FolderIcons
         /// </summary>
         public static bool HasTreeViewFocus()
         {
-            var focusedWindow = EditorWindow.focusedWindow;
-            //if (!focusedWindow.ToString().Contains("UnityEditor.ProjectBrowser"))
-            if (focusedWindow.ToString() != " (UnityEditor.ProjectBrowser)")
-            {
-                return false;
-            }
-
-            var folderTree = m_FolderTree.GetValue(focusedWindow);
+            if (folderTree == null) return false;
             var hasFocus = hasFocusMethod.Invoke(folderTree, null);
 
             return (bool)hasFocus;
@@ -99,13 +101,17 @@ namespace FolderIcons
         /// <summary>
         /// Determines if a folder is selected in the project tree view.
         /// </summary>
-        /// <param name="path">The path to the folder</param>
-        public static bool IsFolderSelected(string path)
+        /// <param name="id">The instanceID of the folder</param>
+        public static bool IsFolderSelected(int id)
         {
-            object obj = getActiveFolderPath.Invoke(null, new object[0]);
-            string pathToSelected = obj.ToString();
+            UpdateProjectWindowCache();
 
-            return path == pathToSelected;
+            if (folderTree == null) return false;
+
+            var item = findItemMethod.Invoke(folderTree, new object[] { id });
+            var isSelected = isItemDragSelectedOrSelectedMethod.Invoke(folderTree, new object[] { item });
+            
+            return (bool)isSelected;
         }
 
         /// <summary>
@@ -114,6 +120,14 @@ namespace FolderIcons
         private static bool IsTreeView(Rect rect)
         {
             return FolderGUI.IsTreeView(rect) && FolderGUI.IsSideView(rect);
+        }
+
+        private static void UpdateProjectWindowCache()
+        {
+            projectWindow = (EditorWindow)getProjectBrowserIfExistsMethod.Invoke(null, null);
+
+            folderTree = m_FolderTree.GetValue(projectWindow); // Two Column Layout
+            folderTree ??= m_AssetTree.GetValue(projectWindow); // One Column Layout
         }
     }
 }
